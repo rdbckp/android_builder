@@ -33,8 +33,8 @@ jobs:
           cd ~/android
           git config --global user.name "rdbckp-bot"
           git config --global user.email "rdbckp@users.noreply.github.com"
-          # Kita main aman tanpa opsi yang bikin error
-          repo init -u https://github.com/LineageOS/android.git -b lineage-18.1 --depth=1
+          # Tambahin --groups=all,-notdefault,-device,-vts,-pdk biar gak download sampah
+          repo init -u https://github.com/LineageOS/android.git -b lineage-18.1 --depth=1 --groups=all,-notdefault,-device,-vts,-pdk
 
       - name: Add Local Manifest
         run: |
