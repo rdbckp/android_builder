@@ -1,0 +1,66 @@
+name: LineageOS 18.1 Builder A02
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Free Disk Space (Trik Rahasia)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: false # Kita butuh Android SDK bawaan runner sedikit
+
+      - name: Install Build Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc build-essential zip curl libstdc++6 git wget python3 python3-pip python-is-python3 repo libssl-dev
+
+      - name: Install Repo Tool
+        run: |
+          mkdir ~/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+x ~/bin/repo
+          sudo ln -sf ~/bin/repo /usr/bin/repo
+
+      - name: Initialize LineageOS Source
+        run: |
+          mkdir -p ~/android
+          cd ~/android
+          git config --global user.name "rdbckp-bot"
+          git config --global user.email "rdbckp@users.noreply.github.com"
+          # Kita pake depth=1 biar sync-nya cepet (Gak narik history lama)
+          repo init -u https://github.com/LineageOS/android.git -b lineage-18.1 --git-lfs --depth=1
+
+      - name: Add Local Manifest (Nyawa A02)
+        run: |
+          mkdir -p ~/android/.repo/local_manifests
+          cat <<EOF > ~/android/.repo/local_manifests/a02.xml
+          <?xml version="1.0" encoding="UTF-8"?>
+          <manifest>
+            <project name="rdbckp/device_samsung_a02" path="device/samsung/a02" remote="github" revision="main" />
+            <project name="rdbckp/vendor_samsung_a02" path="vendor/samsung/a02" remote="github" revision="main" />
+            <project name="rdbckp/a022f_kernel" path="kernel/samsung/a02" remote="github" revision="master" />
+          </manifest>
+          EOF
+
+      - name: Sync Sources (Belanja Bahan)
+        run: |
+          cd ~/android
+          repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+
+      - name: Start The Cook (Brunch)
+        run: |
+          cd ~/android
+          source build/envsetup.sh
+          lunch lineage_a02-userdebug
+          # Gunakan mka bacon buat bikin zip flashable
+          mka bacon -j$(nproc --all)
+
+      - name: Upload Result
+        uses: actions/upload-artifact@v4
+        with:
+          name: LineageOS_A02_Package
+          path: ~/android/out/target/product/a02/lineage-18.1*.zip
